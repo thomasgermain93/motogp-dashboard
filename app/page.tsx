@@ -1,65 +1,140 @@
-import Image from "next/image";
+import { getEvents, getNextEvent, getRecentEvents } from './_lib/api/events';
+import { getCurrentSeason } from './_lib/api/seasons';
+import { getCategories } from './_lib/api/events';
+import { getStandings } from './_lib/api/standings';
+import { getClassification, getSessions } from './_lib/api/sessions';
+import { Countdown } from './_components/ui/Countdown';
+import { StandingsTable } from './_components/ui/StandingsTable';
+import { ResultsTable } from './_components/ui/ResultsTable';
+import { EventCard } from './_components/ui/EventCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Trophy, Calendar, Timer } from 'lucide-react';
 
-export default function Home() {
+export default async function Home() {
+  const currentYear = new Date().getFullYear();
+  
+  // Fetch all data in parallel
+  const [events, categories] = await Promise.all([
+    getEvents(currentYear),
+    getCategories(currentYear),
+  ]);
+
+  const nextEvent = getNextEvent(events);
+  const recentEvents = getRecentEvents(events, 3);
+  
+  // Get standings for MotoGP (default)
+  let standings: { classification: any[] } = { classification: [] };
+  let lastResults: any[] = [];
+  
+  try {
+    const season = await getCurrentSeason();
+    const motoGPCategory = categories.find(c => c.name === 'MotoGP');
+    
+    if (motoGPCategory) {
+      const standingsData = await getStandings(season.id, motoGPCategory.id);
+      standings = standingsData;
+      
+      // Get results from most recent finished event
+      if (recentEvents.length > 0) {
+        const lastEvent = recentEvents[0];
+        const sessions = await getSessions(lastEvent.id, motoGPCategory.id);
+        const raceSession = sessions.find(s => s.type === 'RAC');
+        if (raceSession) {
+          const classification = await getClassification(raceSession.id, currentYear);
+          lastResults = classification.classification.slice(0, 5);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching standings:', error);
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Hero Section - Next Event */}
+      {nextEvent && (
+        <section className="mb-12">
+          <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 overflow-hidden">
+            <CardContent className="p-6 sm:p-10">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Calendar className="w-5 h-5 text-zinc-500" />
+                    <span className="text-sm text-zinc-400 uppercase tracking-wider">Prochain Grand Prix</span>
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-2">
+                    {nextEvent.name}
+                  </h1>
+                  <p className="text-lg text-zinc-400 mb-4">
+                    {nextEvent.circuit.name}, {nextEvent.circuit.country}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-zinc-500">
+                    <span>{nextEvent.circuit.track?.length || '--'} m</span>
+                    <span>•</span>
+                    <span>{nextEvent.circuit.track?.left_corners || '--'} virages gauche</span>
+                    <span>•</span>
+                    <span>{nextEvent.circuit.track?.right_corners || '--'} droite</span>
+                  </div>
+                </div>
+                <div className="flex justify-center md:justify-end">
+                  <Countdown targetDate={nextEvent.date_start} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      {/* Grid with Standings and Recent Results */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Championship Standings */}
+        <section className="lg:col-span-2">
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                <CardTitle className="text-zinc-100">Championnat MotoGP</CardTitle>
+              </div>
+              <a 
+                href="/standings" 
+                className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Voir tout →
+              </a>
+            </CardHeader>
+            <CardContent>
+              {standings.classification.length > 0 ? (
+                <StandingsTable standings={standings.classification.slice(0, 5)} />
+              ) : (
+                <p className="text-zinc-500 text-center py-8">Aucune donnée disponible</p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Recent Results */}
+        <section>
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div className="flex items-center gap-2">
+                <Timer className="w-5 h-5 text-zinc-500" />
+                <CardTitle className="text-zinc-100">Derniers Résultats</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {lastResults.length > 0 ? (
+                <ResultsTable results={lastResults} />
+              ) : (
+                <div className="space-y-3">
+                  {recentEvents.map((event) => (
+                    <EventCard key={event.id} event={event} compact />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      </div>
     </div>
   );
 }

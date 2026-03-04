@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MotoGP Dashboard
 
-## Getting Started
+Dashboard minimaliste pour suivre le championnat MotoGP. Design noir/blanc/gris, sans publicité.
 
-First, run the development server:
+## Fonctionnalités
+
+- **Dashboard** : Prochain GP avec compte à rebours, derniers résultats, classement
+- **Calendrier** : Tous les Grands Prix de la saison
+- **Classements** : Championnats pilotes (MotoGP, Moto2, Moto3, MotoE)
+- **Pilotes** : Grille complète avec profils détaillés
+- **Résultats** : Résultats par GP et par session
+- **Live** : Timing en temps réel pendant les sessions
+- **Archives** : Accès à la saison 2024
+
+## Tech Stack
+
+- **Framework** : Next.js 15 (App Router)
+- **Langage** : TypeScript
+- **Styling** : Tailwind CSS v4
+- **UI** : shadcn/ui
+- **API** : MotoGP PulseLive API (non officielle)
+
+## Installation
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+```
+app/
+├── _components/     # Composants React
+├── _lib/           # API, types, utils
+├── _hooks/         # Hooks React
+├── page.tsx        # Dashboard
+├── calendar/       # Calendrier
+├── standings/      # Classements
+├── riders/         # Pilotes
+├── results/        # Résultats GP
+├── live/          # Live timing
+└── archive/       # Archives
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Déploiement
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Le site est prêt pour être déployé sur Vercel :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+vercel --prod
+```
 
-## Deploy on Vercel
+## Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- L'API MotoGP est non officielle et peut changer sans préavis
+- Les données sont mises en cache (ISR) pour optimiser les performances
+- Pas de tracking, pas de cookies, juste les données
